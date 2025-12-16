@@ -10,16 +10,10 @@ English | [中文](./README_CN.md)
 pnpm install
 ```
 
-Run CLI:
+Run or develop application:
 
 ```bash
-pnpm ema
-```
-
-Run UI:
-
-```bash
-pnpm ema:ui
+pnpm start
 # or
-pnpm dev:ui
+pnpm dev
 ```

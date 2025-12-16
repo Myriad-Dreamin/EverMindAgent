@@ -10,14 +10,10 @@
 pnpm install
 ```
 
-运行 CLI：
+运行或开发应用：
 
 ```bash
-pnpm ema
-```
-
-运行 UI：
-
-```bash
-pnpm ema:ui
+pnpm start
+# 或者
+pnpm dev
 ```

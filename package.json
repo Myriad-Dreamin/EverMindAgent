@@ -6,18 +6,18 @@
   "description": "EverMindAgent.",
   "main": "index.js",
   "scripts": {
-    "ema": "node packages/ema/bin/ema.js",
-    "ema:ui": "pnpm --filter ema-ui start",
-    "dev:main": "pnpm --filter ema dev",
-    "dev:ui": "pnpm --filter ema-ui dev",
+    "start": "pnpm --filter ema-ui start",
+    "dev": "pnpm --filter ema-ui dev",
+    "build": "pnpm --filter ema-ui build",
     "build:main": "pnpm --filter ema build",
     "test:main": "pnpm --filter ema test",
-    "build:ui": "pnpm --filter ema-ui build"
+    "format": "prettier --write \"packages/**/*.{js,jsx,ts,tsx,json,css}\""
   },
   "keywords": [],
   "packageManager": "pnpm@10.16.1",
   "dependencies": {},
   "devDependencies": {
+    "prettier": "^3.7.4",
     "@types/node": "^20.11.17",
     "tsx": "^4.7.1",
     "typescript": "~5.9.0",
