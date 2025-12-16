@@ -7,7 +7,7 @@ import { RetryConfig } from "../retry";
 import type { Message, LLMResponse } from "../schema";
 
 // TODO: definition of tools.
-type Tool = any;
+export type Tool = any;
 
 /**
  * Abstract base class for LLM clients.
