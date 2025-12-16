@@ -1,6 +1,6 @@
 # Contributing Guide
 
-Thank you for your interest in the Mini Agent project! We welcome contributions of all forms.
+Thank you for your interest in the EverMindAgent project! We welcome contributions of all forms.
 
 ## How to Contribute
 
@@ -13,9 +13,8 @@ If you find a bug, please create an Issue and include the following information:
 - **Expected Behavior**: What you expected to happen.
 - **Actual Behavior**: What actually happened.
 - **Environment Information**:
-  - Python version
   - Operating system
-  - Versions of relevant dependencies
+  - Browser and version
 
 ### Suggesting New Features
 
@@ -31,27 +30,31 @@ If you have an idea for a new feature, please create an Issue first to discuss i
 
 1. Fork this repository.
 2. Clone your fork:
+
    ```bash
-   git clone https://github.com/MiniMax-AI/Mini-Agent mini-agent
-   cd mini-agent
+   git clone https://github.com/EmaFanClub/EverMindAgent
+   cd EverMindAgent
    ```
 
 3. Create a new branch:
+
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feat/your-feature-name
    # or
    git checkout -b fix/your-bug-fix
    ```
 
+   This is optional but you could see and follow the [Conventional Branch](https://conventional-branch.github.io/) for branch name format.
+
 4. Install development dependencies:
    ```bash
-   uv sync
+   pnpm install
    ```
 
 #### Development Process
 
 1. **Write Code**
-   - Follow the project's code style (see the [Development Guide](docs/DEVELOPMENT.md#code-style-guide)).
+   - Follow the project's code style (see the [Development Guide](docs/DEVELOPMENT_GUIDE.md#code-style-guide)).
    - Add necessary comments and docstrings.
    - Keep your code clean and concise.
 
@@ -59,7 +62,7 @@ If you have an idea for a new feature, please create an Issue first to discuss i
    - Add test cases for new features.
    - Ensure all tests pass:
      ```bash
-     pytest tests/ -v
+     pnpm test
      ```
 
 3. **Update Documentation**
@@ -69,11 +72,10 @@ If you have an idea for a new feature, please create an Issue first to discuss i
 4. **Commit Changes**
    - Use clear commit messages:
      ```bash
-     git commit -m "feat(tools): Add new file search tool"
+     git commit -m "feat(tools): add new file search tool"
      # or
-     git commit -m "fix(agent): Fix error handling for tool calls"
+     git commit -m "fix(agent): fix error handling for tool calls"
      ```
-   
    - Commit message format:
      - `feat`: A new feature
      - `fix`: A bug fix
@@ -83,9 +85,12 @@ If you have an idea for a new feature, please create an Issue first to discuss i
      - `test`: Test-related changes
      - `chore`: Build or auxiliary tools
 
+     See and follow the [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) for commit message format.
+
 5. **Push to Your Fork**
+
    ```bash
-   git push origin feature/your-feature-name
+   git push origin feat/your-feature-name
    ```
 
 6. **Create a Pull Request**
@@ -115,69 +120,15 @@ All Pull Requests will be reviewed:
 
 ## Code Style Guide
 
-### Python Code Style
+### Code Style
 
-Follow PEP 8 and the Google Python Style Guide:
+Run format and linter using `pnpm format`.
 
-```python
-# Good example ✅
-class MyClass:
-    """A brief description of the class.
-    
-    A more detailed description...
-    """
-    
-    def my_method(self, param1: str, param2: int = 10) -> str:
-        """A brief description of the method.
-        
-        Args:
-            param1: Description of parameter 1.
-            param2: Description of parameter 2.
-        
-        Returns:
-            Description of the return value.
-        """
-        pass
-
-# Bad example ❌
-class myclass:  # Class names should be PascalCase
-    def MyMethod(self,param1,param2=10):  # Method names should be snake_case
-        pass  # Missing docstring
-```
-
-### Type Hinting
-
-Use Python type hints:
-
-```python
-from typing import List, Dict, Optional, Any
-
-async def process_messages(
-    messages: List[Dict[str, Any]],
-    max_tokens: Optional[int] = None
-) -> str:
-    """Process a list of messages."""
-    pass
-```
+TODO: setup linter in IDEs and editors.
 
 ### Testing
 
-- Write tests for new features.
-- Keep tests simple and clear.
-- Ensure tests cover critical paths.
-
-```python
-import pytest
-from mini_agent.tools.my_tool import MyTool
-
-@pytest.mark.asyncio
-async def test_my_tool():
-    """Test the custom tool."""
-    tool = MyTool()
-    result = await tool.execute(param="test")
-    assert result.success
-    assert "expected" in result.content
-```
+TODO: tests.
 
 ## Community Guidelines
 
@@ -193,7 +144,7 @@ If you have any questions:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE).
 
 ---
 

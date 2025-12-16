@@ -8,6 +8,8 @@
   "scripts": {
     "start": "pnpm --filter ema-ui start",
     "dev": "pnpm --filter ema-ui dev",
+    "test": "pnpm test:main run",
+    "test:watch": "pnpm test:main",
     "build": "pnpm --filter ema-ui build",
     "build:main": "pnpm --filter ema build",
     "test:main": "pnpm --filter ema test",

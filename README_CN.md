@@ -4,7 +4,7 @@
 
 **EverMindAgent** 是一个用于构建 AI 代理的框架。
 
-## 开发
+## 快速开始
 
 ```bash
 pnpm install
@@ -17,3 +17,7 @@ pnpm start
 # 或者
 pnpm dev
 ```
+
+## 贡献
+
+请参阅 [CONTRIBUTING_CN.md](./CONTRIBUTING_CN.md) 了解更多细节。
