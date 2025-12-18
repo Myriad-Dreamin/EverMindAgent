@@ -14,7 +14,7 @@
  * + We can search long term memories. We can have multiple implementations, such as text-based searcher, vector-
  *   based searcher.
  *
- * All of the above interfaces, except the searcher, are implemented in mongo db. The seacher can be implemented by backends other
+ * All of the above interfaces, except the searcher, are implemented in mongo db. The searcher can be implemented by backends other
  * than mongo, like elasticsearch.
  *
  * See:
@@ -26,7 +26,7 @@
  * - {@link ConversationMessageDB}
  * - {@link ShortTermMemoryDB}
  * - {@link LongTermMemoryDB}
- * - {@link LongTermMemorySeacher}
+ * - {@link LongTermMemorySearcher}
  */
 
 import type { Message } from "../schema";
@@ -524,7 +524,7 @@ export interface ListLongTermMemoriesRequest {
 /**
  * Interface for long term memory searcher
  */
-export interface LongTermMemorySeacher {
+export interface LongTermMemorySearcher {
   /**
    * searches for long term memories
    * @param req - The request to search for long term memories
