@@ -3,7 +3,7 @@
  * Provides both real file system and in-memory file system implementations.
  */
 
-import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir, access } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { RoleDB, RoleData } from "./base";
 import tmp from "tmp";
@@ -26,6 +26,13 @@ export interface Fs {
    * @returns Promise resolving when the write completes
    */
   write(path: string, content: string): Promise<void>;
+
+  /**
+   * Checks if a file exists
+   * @param path - Path to the file to check
+   * @returns Promise resolving to true if the file exists, false otherwise
+   */
+  exists(path: string): Promise<boolean>;
 }
 
 /**
@@ -65,6 +72,15 @@ export class RealFs implements Fs {
       tempFile.removeCallback();
     }
   }
+
+  async exists(path: string): Promise<boolean> {
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**
@@ -80,6 +96,10 @@ export class MemFs implements Fs {
 
   async write(path: string, content: string): Promise<void> {
     this.files.set(path, content);
+  }
+
+  async exists(path: string): Promise<boolean> {
+    return this.files.has(path);
   }
 }
 
