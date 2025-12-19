@@ -40,7 +40,7 @@ export class Server {
   }
 
   static async create(fs: Fs = new RealFs()): Promise<Server> {
-    const isDev = process.env.NODE_ENV === "development";
+    const isDev = ["development", "test"].includes(process.env.NODE_ENV || "");
 
     const server = new Server(fs);
 
