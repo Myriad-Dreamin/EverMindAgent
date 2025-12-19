@@ -82,7 +82,11 @@ export class MemFs implements Fs {
   }
 
   async read(path: string): Promise<string> {
-    return this.files.get(path) ?? "{}";
+    const content = this.files.get(path);
+    if (content === undefined) {
+      throw new Error(`File not found: ${path}`);
+    }
+    return content;
   }
 
   async write(path: string, content: string): Promise<void> {
