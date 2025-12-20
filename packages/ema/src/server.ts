@@ -1,7 +1,14 @@
 import { OpenAIClient } from "./llm/openai_client";
 import type { Message } from "./schema";
-import { createMongo, MongoRoleDB } from "./db";
+import {
+  createMongo,
+  Mongo,
+  MongoRoleDB,
+  type MongoCollectionGetter,
+} from "./db";
 import type { RoleData, RoleDB } from "./db/base";
+import type { Fs } from "./fs";
+import { RealFs } from "./fs";
 
 /**
  * The server class for the EverMemoryArchive.
@@ -10,9 +17,10 @@ import type { RoleData, RoleDB } from "./db/base";
  */
 export class Server {
   private llmClient: OpenAIClient;
-  private roleDB!: RoleDB;
+  private mongo!: Mongo;
+  private roleDB!: RoleDB & MongoCollectionGetter;
 
-  private constructor() {
+  private constructor(private readonly fs: Fs) {
     // Initialize OpenAI client with environment variables or defaults
     const apiKey =
       process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || "";
@@ -31,17 +39,44 @@ export class Server {
     this.llmClient = new OpenAIClient(apiKey, apiBase, model);
   }
 
-  static async create(): Promise<Server> {
-    const server = new Server();
+  static async create(fs: Fs = new RealFs()): Promise<Server> {
+    const isDev = ["development", "test"].includes(process.env.NODE_ENV || "");
+
+    const server = new Server(fs);
 
     // Initialize MongoDB asynchronously
     // Use environment variables or defaults for MongoDB connection
     const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017";
     const mongoDbName = process.env.MONGO_DB_NAME || "ema";
     const mongoKind =
-      (process.env.MONGO_KIND as "memory" | "remote") || "memory";
+      (process.env.MONGO_KIND as "memory" | "remote") ||
+      (isDev ? "memory" : "remote");
 
     await server.initializeDb(mongoUri, mongoDbName, mongoKind);
+
+    if (isDev) {
+      const restored = await server.restoreFromSnapshot("default");
+      if (!restored) {
+        console.error("Failed to restore snapshot 'default'");
+      } else {
+        console.log("Snapshot 'default' restored");
+      }
+    }
+
+    return server;
+  }
+
+  // todo: replace this api with `create(config, fs)` in future.
+  /**
+   * Creates a Server instance with a pre-configured MongoDB instance for testing.
+   * @param fs - File system implementation
+   * @param mongo - MongoDB instance
+   * @returns Promise resolving to the Server instance
+   */
+  static async createWithMongo(fs: Fs, mongo: Mongo): Promise<Server> {
+    const server = new Server(fs);
+    server.mongo = mongo;
+    server.roleDB = new MongoRoleDB(mongo);
     return server;
   }
 
@@ -56,9 +91,54 @@ export class Server {
     dbName: string,
     kind: "memory" | "remote",
   ): Promise<void> {
-    const mongo = await createMongo(uri, dbName, kind);
-    await mongo.connect();
-    this.roleDB = new MongoRoleDB(mongo);
+    this.mongo = await createMongo(uri, dbName, kind);
+    await this.mongo.connect();
+    this.roleDB = new MongoRoleDB(this.mongo);
+  }
+
+  private snapshotPath(name: string): string {
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      throw new Error(
+        `Invalid snapshot name: ${name}. Only letters, numbers, underscores, and hyphens are allowed.`,
+      );
+    }
+
+    // TODO: use config.ts to load data root
+    const dataRoot = process.env.DATA_ROOT || ".data";
+    return `${dataRoot}/mongo-snapshots/${name}.json`;
+  }
+
+  /**
+   * Takes a snapshot of the MongoDB database and writes it to a file.
+   * @param name - The name of the snapshot
+   * @returns Promise<{ fileName: string }> The file name of the snapshot
+   */
+  async snapshot(name: string): Promise<{ fileName: string }> {
+    const fileName = this.snapshotPath(name);
+
+    const dbs = [this.roleDB];
+    const collections = new Set<string>(dbs.flatMap((db) => db.collections));
+
+    const snapshot = await this.mongo.snapshot(Array.from(collections));
+    await this.fs.write(fileName, JSON.stringify(snapshot, null, 1));
+    return {
+      fileName,
+    };
+  }
+
+  /**
+   * Restores the MongoDB database from the snapshot file.
+   * @param name - The name of the snapshot
+   * @returns Promise<boolean> True if the snapshot was restored, false if not found
+   */
+  async restoreFromSnapshot(name: string): Promise<boolean> {
+    const fileName = this.snapshotPath(name);
+    if (!(await this.fs.exists(fileName))) {
+      return false;
+    }
+    const snapshot = await this.fs.read(fileName);
+    await this.mongo.restoreFromSnapshot(JSON.parse(snapshot));
+    return true;
   }
 
   /**

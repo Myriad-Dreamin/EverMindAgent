@@ -6,6 +6,16 @@
 import type { Db, MongoClient } from "mongodb";
 
 /**
+ * Interface for getting all the collection names being accessed
+ */
+export interface MongoCollectionGetter {
+  /**
+   * The collection names being accessed
+   */
+  collections: string[];
+}
+
+/**
  * Arguments for creating a MongoDB instance
  */
 export interface CreateMongoArgs {
@@ -36,30 +46,78 @@ export interface MongoProvider {
 /**
  * A mongo database instance
  */
-export interface Mongo {
+export abstract class Mongo {
+  abstract readonly isSnapshotSupported: boolean;
+
+  constructor(protected readonly dbName: string) {}
+
   /**
    * Gets the MongoDB database instance
    * @returns The MongoDB database instance
+   * @throws Error if not connected
    */
-  getDb(): Db;
+  getDb(): Db {
+    return this.getClient().db(this.dbName);
+  }
 
   /**
    * Gets the MongoDB client instance
    * @returns The MongoDB client instance
    */
-  getClient(): MongoClient;
+  abstract getClient(): MongoClient;
 
   /**
    * Connects to the MongoDB database
    * @returns Promise resolving when connection is established
    */
-  connect(): Promise<void>;
+  abstract connect(): Promise<void>;
 
   /**
    * Closes the MongoDB connection
    * @returns Promise resolving when connection is closed
    */
-  close(): Promise<void>;
+  abstract close(): Promise<void>;
+
+  /**
+   * Takes a snapshot of the collections and returns the snapshot data.
+   * @param collections - The collection names to snapshot
+   * @returns Promise<unknown> The snapshot data
+   */
+  async snapshot(collections: string[]): Promise<unknown> {
+    const client = this.getClient();
+    return await client.withSession(async () => {
+      const snapshot: Record<string, unknown[]> = {};
+      const db = client.db(this.dbName);
+      for (const name of collections.sort()) {
+        snapshot[name] = await db.collection(name).find().toArray();
+      }
+      return snapshot;
+    });
+  }
+
+  /**
+   * Restores the MongoDB database from the snapshot data.
+   * @param snapshotData - The snapshot data
+   * @returns Promise resolving when the restore is complete
+   */
+  async restoreFromSnapshot(snapshotData: unknown): Promise<void> {
+    if (!this.isSnapshotSupported) {
+      throw new Error("MongoDB cannot set snapshot.");
+    }
+
+    const snapshot = snapshotData as Record<string, any[]>;
+
+    const client = this.getClient();
+    return await client.withSession(async () => {
+      const db = client.db(this.dbName);
+      for (const name of Object.keys(snapshot)) {
+        await db.collection(name).deleteMany();
+        if (snapshot[name] instanceof Array && snapshot[name].length > 0) {
+          await db.collection(name).insertMany(snapshot[name]);
+        }
+      }
+    });
+  }
 }
 
 /**
