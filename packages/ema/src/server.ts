@@ -30,6 +30,7 @@ import type { Fs } from "./fs";
 import { RealFs } from "./fs";
 import { ActorWorker } from "./actor";
 import { Config } from "./config";
+import type { EmaPlugin } from "./plugin";
 
 /**
  * The server class for the EverMemoryArchive.
@@ -52,19 +53,19 @@ export class Server {
   longTermMemoryDB!: LongTermMemoryDB & MongoCollectionGetter;
   longTermMemorySearcher!: LongTermMemorySearcher;
 
-  private constructor(private readonly fs: Fs) {
-    this.config = Config.load();
-    // Initialize OpenAI client with environment variables or defaults
-    const apiKey =
-      process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || "";
-    const apiBase =
-      process.env.OPENAI_API_BASE ||
-      process.env.GEMINI_API_BASE ||
-      "https://generativelanguage.googleapis.com/v1beta/openai/";
-    const model =
-      process.env.OPENAI_MODEL ||
-      process.env.GEMINI_MODEL ||
-      "gemini-2.5-flash";
+  /**
+   * The plugins of the server.
+   * @type {Record<string, EmaPlugin>}
+   */
+  public plugins: Record<string, EmaPlugin> = {};
+
+  private constructor(
+    private readonly fs: Fs,
+    config: Config,
+  ) {
+    this.config = config;
+    const { apiKey, apiBase, model, retry } = config.llm;
+
     if (!apiKey) {
       throw new Error("OPENAI_API_KEY or GEMINI_API_KEY env is not set");
     }
