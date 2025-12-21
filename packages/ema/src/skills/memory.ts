@@ -1,57 +1,69 @@
 import type { Message } from "../schema";
 
 /**
- * Interface for agent memory
+ * Interface for persisting actor state
  */
-interface ConversationStorage {
+export interface ActorStateStorage {
   /**
-   * Save a conversation
-   * @param messages - The messages in the conversation
-   * @returns Promise resolving to the message ids of the conversation
+   * Gets the state of the actor
+   * @returns Promise resolving to the state of the actor
    */
-  saveConversation(messages: Message[]): Promise<number[]>;
+  getState(): Promise<ActorState>;
+  /**
+   * Updates the state of the actor
+   * @param state - The state to update
+   * @returns Promise resolving when the state is updated
+   */
+  updateState(state: ActorState): Promise<void>;
+}
+
+export interface ActorState {
+  /**
+   * The memory buffer, in the format of messages in OpenAI chat completion API.
+   */
+  memoryBuffer: Message[];
+  // more state can be added here.
 }
 
 /**
- * Interface for agent memory
+ * Interface for actor memory
  */
-interface AgentMemory {
+export interface ActorMemory {
   /**
-   * Search agent memory
+   * Searches actor memory
    * @param keywords - Keywords to search for
    * @returns Promise resolving to the search result
    */
-  search(keywords: string[]): Promise<SearchAgentMemoryResult>;
+  search(keywords: string[]): Promise<SearchActorMemoryResult>;
   /**
-   * Add short term memory
+   * Adds short term memory
    * @param item - Short term memory item
-   * @param messageIds - The message ids facilitating the short term memory, for debugging purpose.
    * @returns Promise resolving when the memory is added
    */
-  addShortTermMemory(
-    item: ShortTermMemory,
-    messageIds?: number[],
-  ): Promise<void>;
+  addShortTermMemory(item: ShortTermMemory): Promise<void>;
   /**
-   * Add long term memory
+   * Adds long term memory
    * @param item - Long term memory item
-   * @param messageIds - The message ids facilitating the long term memory, for debugging purpose.
    * @returns Promise resolving when the memory is added
    */
-  addLongTermMemory(item: LongTermMemory, messageIds?: number[]): Promise<void>;
+  addLongTermMemory(item: LongTermMemory): Promise<void>;
 }
 
 /**
  * Result of searching agent memory
  */
-interface SearchAgentMemoryResult {
+export interface SearchActorMemoryResult {
   /**
    * The long term memories found
    */
   items: LongTermMemory[];
 }
 
-interface ShortTermMemory {
+export interface ShortTermMemory {
+  /**
+   * The granularity of short term memory
+   */
+  kind: "year" | "month" | "day";
   /**
    * The os when the actor saw the messages.
    */
@@ -66,7 +78,7 @@ interface ShortTermMemory {
   createdAt: number;
 }
 
-interface LongTermMemory {
+export interface LongTermMemory {
   /**
    * The 0-index to search, a.k.a. 一级分类
    */
