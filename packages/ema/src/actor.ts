@@ -1,6 +1,5 @@
 // import type { Message } from "../schema";
-import type { A } from "vitest/dist/chunks/environment.d.cL3nLXbE.js";
-import { Agent } from "./agent";
+import { Agent, AgentEvents } from "./agent";
 import type { AgentEventName, AgentEventContent } from "./agent";
 import type {
   ActorDB,
@@ -18,7 +17,10 @@ import type {
 } from "./skills/memory";
 
 export class ActorWorker implements ActorStateStorage, ActorMemory {
-  private readonly actor: Agent = new Agent();
+  private readonly agent: Agent = new Agent();
+  private readonly subscribers = new Set<(response: ActorResponse) => void>();
+  private currentStatus: ActorStatus = "idle";
+  private recentEvents: ActorEvents = [];
 
   constructor(
     private readonly actorId: number,
@@ -46,6 +48,8 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
    * ```
    */
   async work(inputs: ActorInputs) {
+    // start a new run with a fresh event list
+    this.recentEvents = [];
     // TODO: implement actor stepping logic
     if (inputs.length === 0) {
       throw new Error("No inputs provided");
@@ -54,27 +58,59 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
       throw new Error("Only single text input is supported currently");
     }
     const input = inputs[0] as ActorTextInput;
-    while (true) {
-      this.actor.contextManager.addUserMessage(input.content); // add user input to context
-      await this.actor.run();
+    this.emitEvent({
+      type: "message",
+      content: `Received input: ${input.content}. Start running.`,
+    });
+
+    // push user input into the agent context
+    this.agent.contextManager.addUserMessage(input.content);
+
+    // setup event listeners of all agent events
+    const handlers: Array<
+      [AgentEventName, (content: AgentEventContent) => void]
+    > = [];
+    (Object.keys(AgentEvents) as AgentEventName[]).forEach((eventName) => {
+      const handler = (content: AgentEventContent) => {
+        this.emitEvent({ type: eventName, content: content });
+      };
+      this.agent.events.on(eventName, handler);
+      handlers.push([eventName, handler]);
+    });
+
+    try {
+      await this.agent.run();
+    } finally {
+      // cleanup listeners and notify idle
+      for (const [eventName, handler] of handlers) {
+        this.agent.events.off(eventName, handler);
+      }
+      this.broadcast("idle");
     }
   }
 
-  /**
-   * hold recent events
-   */
-  recentEvents: ActorEvents = [];
-  subscribe(cb: (response: ActorResponse) => void) {
+  public subscribe(cb: (response: ActorResponse) => void) {
     cb({
-      state: "idle",
+      status: this.currentStatus,
       events: this.recentEvents,
     });
-    // subscribe to events
-    throw new Error("Not implemented");
+    this.subscribers.add(cb);
   }
-  unsubscribe(cb: (response: ActorResponse) => void) {
-    // unsubscribe to events
-    throw new Error("Not implemented");
+
+  public unsubscribe(cb: (response: ActorResponse) => void) {
+    this.subscribers.delete(cb);
+  }
+
+  private broadcast(status: ActorStatus) {
+    this.currentStatus = status;
+    for (const cb of this.subscribers) {
+      cb({ status, events: this.recentEvents });
+    }
+  }
+
+  private emitEvent(event: ActorEvent) {
+    this.recentEvents.push(event);
+    this.broadcast("running");
   }
 
   async getState(): Promise<ActorState> {
@@ -102,6 +138,7 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
   }
 
   async search(keywords: string[]): Promise<SearchActorMemoryResult> {
+    // todo: combine short-term memory search
     const items = await this.longTermMemorySearcher.searchLongTermMemories({
       actorId: this.actorId,
       keywords,
@@ -111,6 +148,7 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
   }
 
   async addShortTermMemory(item: ShortTermMemory): Promise<void> {
+    // todo: enforce short-term memory limit
     await this.shortTermMemoryDB.appendShortTermMemory({
       actorId: this.actorId,
       ...item,
@@ -118,6 +156,7 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
   }
 
   async addLongTermMemory(item: LongTermMemory): Promise<void> {
+    // todo: enforce long-term memory limit
     await this.longTermMemoryDB.appendLongTermMemory({
       actorId: this.actorId,
       ...item,
@@ -129,9 +168,11 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
  * The response from the actor.
  */
 interface ActorResponse {
-  state: "running" | "idle";
+  status: ActorStatus;
   events: ActorEvents;
 }
+
+type ActorStatus = "running" | "idle";
 
 /**
  * The actor sends a message.

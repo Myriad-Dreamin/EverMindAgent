@@ -79,7 +79,8 @@ export type AgentEventContents = {
   [K in AgentEventName]: (typeof AgentEventDefs)[K];
 };
 
-export type AgentEventContent<K extends AgentEventName = AgentEventName> = (typeof AgentEventDefs)[K];
+export type AgentEventContent<K extends AgentEventName = AgentEventName> =
+  (typeof AgentEventDefs)[K];
 
 export class AgentEventsEmitter {
   private readonly emitter = new EventEmitter();
