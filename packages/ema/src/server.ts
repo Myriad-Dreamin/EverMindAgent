@@ -111,6 +111,7 @@ export class Server {
    * Creates a Server instance with a pre-configured MongoDB instance for testing.
    * @param fs - File system implementation
    * @param mongo - MongoDB instance
+   * @param lance - LanceDB instance
    * @returns The Server instance
    */
   static createSync(
@@ -198,14 +199,14 @@ export class Server {
    *
    * Exposed as `GET /api/users/login`.
    *
-   * @returns {{ id: number, name: string, email: string }} The logged-in user object.
+   * @returns The logged-in user object.
    *
    * @example
    * // Example usage:
    * const user = server.login();
    * console.log(user.id); // 1
    */
-  login() {
+  login(): { id: number; name: string; email: string } {
     return {
       id: 1,
       name: "alice",
