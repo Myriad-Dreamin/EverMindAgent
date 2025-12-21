@@ -16,7 +16,7 @@ import {
   MongoLongTermMemoryDB,
   type MongoCollectionGetter,
   MongoMemorySearchAdaptor,
-  LanceVectorMemorySearcher,
+  LanceMemoryVectorSearcher,
 } from "./db";
 import { utilCollections } from "./db/mongo.util";
 import type {
@@ -129,7 +129,7 @@ export class Server {
     server.conversationDB = new MongoConversationDB(mongo);
     server.conversationMessageDB = new MongoConversationMessageDB(mongo);
     server.shortTermMemoryDB = new MongoShortTermMemoryDB(mongo);
-    server.longTermMemoryVectorSearcher = new LanceVectorMemorySearcher(
+    server.longTermMemoryVectorSearcher = new LanceMemoryVectorSearcher(
       mongo,
       lance,
     );

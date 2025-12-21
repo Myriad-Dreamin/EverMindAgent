@@ -36,7 +36,7 @@ export interface LongTermMemoryEmbeddingEngine {
  * LanceDB-based implementation of LongTermMemorySearcher
  * Uses vector search to find long term memories
  */
-export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
+export class LanceMemoryVectorSearcher extends MongoMemorySearchAdaptor {
   /** dim of the vector, See: https://ai.google.dev/gemini-api/docs/embeddings */
   private readonly $dim = 1536;
   /** isDebug */
@@ -77,7 +77,7 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
       ? await query.toArray()
       : await query.select(["id", "_distance"]).toArray();
     if (this.isDebug) {
-      console.log("[LanceVectorMemorySearcher]", ids);
+      console.log("[LanceMemoryVectorSearcher]", ids);
     }
 
     return ids.map((res) => res.id);

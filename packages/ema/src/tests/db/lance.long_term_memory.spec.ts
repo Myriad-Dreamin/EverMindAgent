@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import {
   createMongo,
-  LanceVectorMemorySearcher,
+  LanceMemoryVectorSearcher,
   MongoLongTermMemoryDB,
 } from "../../db";
 
@@ -28,11 +28,11 @@ class SimpleEmbeddingEngine implements LongTermMemoryEmbeddingEngine {
   }
 }
 
-describe("LanceVectorMemorySearcher with in-memory LanceDB", () => {
+describe("LanceMemoryVectorSearcher with in-memory LanceDB", () => {
   let mongo: Mongo;
   let lance: lancedb.Connection;
   let db: MongoLongTermMemoryDB;
-  let searcher: LanceVectorMemorySearcher;
+  let searcher: LanceMemoryVectorSearcher;
   const embeddingEngine = new SimpleEmbeddingEngine();
   const 绘画 = {
     index0: "绘画",
@@ -80,7 +80,7 @@ describe("LanceVectorMemorySearcher with in-memory LanceDB", () => {
     await mongo.connect();
     lance = await lancedb.connect("memory://ema");
     db = new MongoLongTermMemoryDB(mongo);
-    searcher = new LanceVectorMemorySearcher(mongo, lance, embeddingEngine);
+    searcher = new LanceMemoryVectorSearcher(mongo, lance, embeddingEngine);
 
     await searcher.createIndices();
   });
