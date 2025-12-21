@@ -1,0 +1,89 @@
+{
+  "name": "ema-dev",
+  "displayName": "MD String Injection",
+  "description": "",
+  "version": "0.0.1",
+  "publisher": "Myriad-Dreamin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EmaFanClub/EverMemoryArchive.git",
+    "directory": "contrib/ema-dev/editor/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/EmaFanClub/EverMemoryArchive/issues"
+  },
+  "engines": {
+    "vscode": "^1.8.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "js-md-string-injection"
+      },
+      {
+        "id": "ts-md-string-injection"
+      },
+      {
+        "id": "jsx-md-string-injection"
+      },
+      {
+        "id": "tsx-md-string-injection"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "js-md-string-injection",
+        "scopeName": "md.injection.js",
+        "path": "./syntaxes/md-string-inject-js.json",
+        "injectTo": [
+          "source.js"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.md": "markdown"
+        }
+      },
+      {
+        "language": "ts-md-string-injection",
+        "scopeName": "md.injection.ts",
+        "path": "./syntaxes/md-string-inject-ts.json",
+        "injectTo": [
+          "source.ts"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.md": "markdown"
+        }
+      },
+      {
+        "language": "jsx-md-string-injection",
+        "scopeName": "md.injection.jsx",
+        "path": "./syntaxes/md-string-inject-jsx.json",
+        "injectTo": [
+          "source.jsx"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.md": "markdown"
+        }
+      },
+      {
+        "language": "tsx-md-string-injection",
+        "scopeName": "md.injection.tsx",
+        "path": "./syntaxes/md-string-inject-tsx.json",
+        "injectTo": [
+          "source.tsx"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.md": "markdown"
+        }
+      }
+    ]
+  },
+  "dependencies": {},
+  "scripts": {
+    "package": "npx @vscode/vsce package",
+    "vsc:install": "code --install-extension ema-dev-0.0.1.vsix"
+  }
+}
