@@ -1,4 +1,5 @@
 // import type { Message } from "../schema";
+import type { AgentEventsEmitter } from "./agent";
 import type {
   ActorDB,
   LongTermMemoryDB,
@@ -41,6 +42,23 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
    * ```
    */
   async work(input: ActorInput) {
+    throw new Error("Not implemented");
+  }
+
+  /**
+   * hold recent events
+   */
+  recentEvents: ActorEvent[] = [];
+  subscribe(cb: (response: ActorResponse) => void) {
+    cb({
+      state: "idle",
+      events: this.recentEvents,
+    });
+    // subscribe to events
+    throw new Error("Not implemented");
+  }
+  unsubscribe(cb: (response: ActorResponse) => void) {
+    // unsubscribe to events
     throw new Error("Not implemented");
   }
 
@@ -90,6 +108,30 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
       ...item,
     });
   }
+}
+
+interface ActorResponse {
+  state: "running" | "idle";
+  events: ActorEvent[];
+}
+
+type ActorEvent = ActorMessage | ActorTokenUsage;
+
+/**
+ * The actor sends a message.
+ */
+interface ActorMessage {
+  kind: "message";
+  content: string;
+}
+
+/**
+ * The actor used tokens (for debugging).
+ */
+interface ActorTokenUsage {
+  kind: "tokenUsage";
+  inputTokens: number;
+  outputTokens: number;
 }
 
 /**
