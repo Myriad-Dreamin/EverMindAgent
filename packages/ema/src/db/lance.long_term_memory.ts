@@ -11,10 +11,26 @@ import { Field, Int64, FixedSizeList, Float32, Schema } from "apache-arrow";
 /**
  * The fields of a long term memory that are interested for embedding
  */
-type EmbeddingInterestedLTMFields = Pick<
+export type EmbeddingInterestedLTMFields = Pick<
   SearchLongTermMemoriesRequest,
   "index0" | "index1" | "keywords"
 >;
+
+/**
+ * Interface for a long term memory embedding engine
+ */
+export interface LongTermMemoryEmbeddingEngine {
+  /**
+   * Creates a vector embedding for a long term memory
+   * @param dim - The dimension of the vector embedding
+   * @param entity - The long term memory to create an embedding for
+   * @returns Promise resolving to the vector embedding of the long term memory
+   */
+  createEmbedding(
+    dim: number,
+    entity: EmbeddingInterestedLTMFields,
+  ): Promise<number[] | undefined>;
+}
 
 /**
  * LanceDB-based implementation of LongTermMemorySearcher
@@ -24,51 +40,47 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
   /** dim of the vector, See: https://ai.google.dev/gemini-api/docs/embeddings */
   private readonly $dim = 1536;
   /** isDebug */
-  private readonly isDebug = true;
+  private readonly isDebug = false;
   /** index table name */
   private readonly $itn = `long_term_memories_gemini-embedding-001_${this.$dim}`;
   /** index table */
   private indexTable!: lancedb.Table;
 
-  private readonly ai: GoogleGenAI;
-
   constructor(
     mongo: Mongo,
     private readonly lancedb: lancedb.Connection,
+    private readonly embeddingEngine: LongTermMemoryEmbeddingEngine = new LongTermMemoryGeminiEmbeddingEngine(),
   ) {
     super(mongo);
-
-    this.ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    });
   }
 
   async doSearch(req: SearchLongTermMemoriesRequest): Promise<number[]> {
-    if (!req.actorId) {
+    const actorId = req.actorId;
+    if (!actorId || typeof actorId !== "number") {
       throw new Error("actorId must be provided");
     }
-    const embedding = await this.createEmbedding(req);
+    const embedding = await this.embeddingEngine.createEmbedding(
+      this.$dim,
+      req,
+    );
     if (!embedding) {
       throw new Error("cannot compute embedding");
     }
 
-    let query = await this.indexTable
+    let query = this.indexTable
       .query()
-      .where("actorId == @actorId")
+      .where(`actor_id == ${actorId}`)
       .nearestTo(embedding)
-      .limit(req.limit ?? 10);
+      .limit(req.limit ?? 100);
 
-    let ids: number[];
+    let ids: { id: number }[] = this.isDebug
+      ? await query.toArray()
+      : await query.select(["id", "_distance"]).toArray();
     if (this.isDebug) {
-      const results = await query.toArray();
-      console.log("[LanceVectorMemorySearcher]", results);
-      ids = results.map((res) => res.id);
-    } else {
-      ids = await query.select("id").toArray();
+      console.log("[LanceVectorMemorySearcher]", ids);
     }
-    console.log("[LanceVectorMemorySearcher]", ids);
 
-    return ids;
+    return ids.map((res) => res.id);
   }
 
   /**
@@ -86,7 +98,10 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
       throw new Error("actorId must be provided");
     }
 
-    const embedding = await this.createEmbedding(entity);
+    const embedding = await this.embeddingEngine.createEmbedding(
+      this.$dim,
+      entity,
+    );
     if (!embedding) {
       throw new Error("cannot compute embedding");
     }
@@ -94,7 +109,7 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
     await this.indexTable.add([
       {
         id,
-        actorId,
+        actor_id: actorId,
         embedding,
       },
     ]);
@@ -116,7 +131,7 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
         this.$itn,
         new Schema([
           new Field("id", new Int64(), false),
-          new Field("actorId", new Int64(), false),
+          new Field("actor_id", new Int64(), false),
           new Field(
             "embedding",
             new FixedSizeList(
@@ -129,13 +144,27 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
       );
     }
   }
+}
 
+/**
+ * Implementation of the long term memory embedding engine using Gemini
+ */
+class LongTermMemoryGeminiEmbeddingEngine implements LongTermMemoryEmbeddingEngine {
+  private readonly ai: GoogleGenAI;
+
+  constructor() {
+    this.ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+  }
   /**
    * Creates a vector embedding for a long term memory
+   * @param dim - The dimension of the vector embedding
    * @param entity - The long term memory to create an embedding for
    * @returns Promise resolving to the vector embedding of the long term memory
    */
   async createEmbedding(
+    dim: number,
     entity: EmbeddingInterestedLTMFields,
   ): Promise<number[] | undefined> {
     const embeddingContent = [];
@@ -153,6 +182,7 @@ export class LanceVectorMemorySearcher extends MongoMemorySearchAdaptor {
       contents: embeddingContent,
       config: {
         taskType: "RETRIEVAL_QUERY",
+        outputDimensionality: dim,
       },
     });
     return response.embeddings?.[0]?.values;
