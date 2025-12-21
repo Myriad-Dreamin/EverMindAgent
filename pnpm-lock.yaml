@@ -42,6 +42,8 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@20.19.27)(jiti@1.21.7)(jsdom@16.7.0)(terser@5.44.1)(tsx@4.21.0)
 
+  contrib/ema-dev/editor/vscode: {}
+
   packages/ema:
     dependencies:
       '@modelcontextprotocol/sdk':
