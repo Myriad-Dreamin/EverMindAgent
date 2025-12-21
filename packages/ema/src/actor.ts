@@ -1,4 +1,5 @@
 // import type { Message } from "../schema";
+import { Agent } from "./agent";
 import type { AgentEventsEmitter } from "./agent";
 import type {
   ActorDB,
@@ -16,6 +17,8 @@ import type {
 } from "./skills/memory";
 
 export class ActorWorker implements ActorStateStorage, ActorMemory {
+  private readonly actor: Agent = new Agent();
+
   constructor(
     private readonly actorId: number,
     private readonly actorDB: ActorDB,

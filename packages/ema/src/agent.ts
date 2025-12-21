@@ -514,25 +514,27 @@ export class ContextManager {
 
 /** Single agent with basic tools and MCP support. */
 export class Agent {
-  /** LLM client used by the agent to generate responses. */
-  llm: LLMClientBase;
   /** Configuration for the agent and underlying LLM. */
   config: Config;
+  /** LLM client used by the agent to generate responses. */
+  llm: LLMClientBase;
   /** Event emitter for agent lifecycle notifications. */
-  events: AgentEventsEmitter;
+  events: AgentEventsEmitter = new AgentEventsEmitter();
   /** Manages conversation context, history, and available tools. */
   contextManager: ContextManager;
   /** Logger instance used for agent-related logging. */
   logger: AgentLogger;
 
-  constructor(
-    config: Config,
-    systemPrompt: string,
-    tools: Tool[],
-    tokenLimit: number = 80000,
-  ) {
-    this.config = config;
-    this.events = new AgentEventsEmitter();
+  constructor({
+    config,
+    systemPrompt,
+    tools,
+  }: {
+    config?: Config;
+    systemPrompt?: string;
+    tools?: Tool[];
+  } = {}) {
+    this.config = config ?? Config.load();
 
     this.llm = new OpenAIClient(
       this.config.llm.apiKey,
@@ -543,11 +545,11 @@ export class Agent {
 
     // Initialize context manager with tools
     this.contextManager = new ContextManager(
-      systemPrompt,
+      systemPrompt ?? this.config.systemPrompt,
       this.llm,
-      tools,
+      tools ?? this.config.baseTools,
       this.config.agent.workspaceDir,
-      tokenLimit,
+      this.config.agent.tokenLimit,
       this.events,
     );
 
