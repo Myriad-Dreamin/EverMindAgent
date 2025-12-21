@@ -41,13 +41,21 @@ abstract class SnapshotCommand extends Command {
  */
 const post = async (url: string, body: Record<string, unknown>) => {
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to communicate with the server at ${url}: ${response.statusText}`,
+      );
+    }
+
+    return response;
   } catch (error) {
     console.error(`Failed to communicate with the server at ${url}: ${error}`);
     console.error(

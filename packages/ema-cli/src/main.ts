@@ -1,3 +1,14 @@
+/**
+ * The main entry point for the EMA CLI
+ *
+ * Multiple commands are registered by `cli.register(Command)` here.
+ *
+ * @example
+ * ```shell
+ * ema help
+ * ```
+ */
+
 import { Cli, Builtins } from "clipanion";
 import { ReplCommand } from "./repl";
 import { SnapshotCreateCommand, SnapshotRestoreCommand } from "./db";
