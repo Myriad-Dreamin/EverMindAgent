@@ -1,0 +1,32 @@
+{
+  "fileTypes": [],
+  "injectionSelector": "L:source.ts",
+  "patterns": [
+    { "include": "#md-inline-string-in-js" },
+    { "include": "#md-block-string-in-js" }
+  ],
+  "repository": {
+    "md-inline-string-in-js": {
+      "name": "string.other.md.injection",
+      "match": "md`([^`]*)`",
+      "captures": {
+        "1": {
+          "name": "meta.embedded.block.md",
+          "include": "text.html.markdown"
+        }
+      }
+    },
+    "md-block-string-in-js": {
+      "name": "string.other.md.injection",
+      "begin": "md`",
+      "end": "`",
+      "patterns": [
+        {
+          "name": "meta.embedded.block.md",
+          "include": "text.html.markdown"
+        }
+      ]
+    }
+  },
+  "scopeName": "md.injection.ts"
+}

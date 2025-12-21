@@ -1,2 +1,3 @@
 packages:
   - "packages/*"
+  - "contrib/ema-dev/editor/vscode"
