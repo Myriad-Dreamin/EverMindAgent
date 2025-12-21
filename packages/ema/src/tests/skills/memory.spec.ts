@@ -11,13 +11,13 @@ import { ActorWorker } from "../../actor";
 
 describe("MemorySkill", () => {
   let mongo: Mongo;
-  let db: ActorWorker;
+  let worker: ActorWorker;
 
   beforeEach(async () => {
     // Create in-memory MongoDB instance for testing
     mongo = await createMongo("", "test", "memory");
     await mongo.connect();
-    db = new ActorWorker(
+    worker = new ActorWorker(
       1,
       new MongoActorDB(mongo),
       new MongoShortTermMemoryDB(mongo),
@@ -32,7 +32,23 @@ describe("MemorySkill", () => {
   });
 
   test("should search memory", async () => {
-    const result = await db.search(["test"]);
+    const result = await worker.search(["test"]);
     expect(result).toEqual({ items: [] });
+  });
+
+  test("should mock search memory", async () => {
+    const item = {
+      index0: "test",
+      index1: "test",
+      keywords: ["test"],
+      os: "test",
+      statement: "test",
+      createdAt: Date.now(),
+    };
+    worker.search = vi.fn().mockResolvedValue({
+      items: [item],
+    });
+    const result = await worker.search(["test"]);
+    expect(result).toEqual({ items: [item] });
   });
 });
