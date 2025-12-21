@@ -111,7 +111,7 @@ export class Server {
    * Creates a Server instance with a pre-configured MongoDB instance for testing.
    * @param fs - File system implementation
    * @param mongo - MongoDB instance
-   * @returns Promise resolving to the Server instance
+   * @returns The Server instance
    */
   static createSync(
     fs: Fs,
