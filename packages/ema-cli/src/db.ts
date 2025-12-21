@@ -16,6 +16,18 @@ abstract class SnapshotCommand extends Command {
     if (!url) {
       url = `http://localhost:${this.port || "3000"}`;
     }
+
+    try {
+      // Validate that the computed URL is well-formed before using it in HTTP requests.
+      // The URL constructor will throw if the value is not a valid absolute URL.
+      // eslint-disable-next-line no-new
+      new URL(url);
+    } catch {
+      throw new Error(
+        `Invalid server address "${url}". Please provide a valid absolute URL, for example "http://localhost:3000".`,
+      );
+    }
+
     return url;
   }
 }
