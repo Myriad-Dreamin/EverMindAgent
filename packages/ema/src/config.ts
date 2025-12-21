@@ -127,7 +127,9 @@ export class Config {
   static load(): Config {
     const configPath = this.getDefaultConfigPath();
     if (!fs.existsSync(configPath)) {
-      throw new Error(`${configPath} file not found.`);
+      const defaultContent = this.getDefaultConfigContent();
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, defaultContent, "utf-8");
     }
     return this.fromYaml(configPath);
   }
@@ -270,5 +272,34 @@ export class Config {
 
     // Fallback to package config directory for error message purposes
     return path.join(this.getPackageDir(), "config", "config.yaml");
+  }
+
+  private static getDefaultConfigContent(): string {
+    return yaml.dump({
+      api_key: "YOUR_API_KEY_HERE",
+      api_base: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      model: "gemini-2.5-flash",
+      provider: "openai",
+      retry: {
+        enabled: true,
+        max_retries: 3,
+        initial_delay: 1000,
+        max_delay: 10000,
+        exponential_base: 2,
+      },
+      max_steps: 50,
+      workspace_dir: "./workspace",
+      system_prompt_file: "system_prompt.md",
+      token_limit: 80000,
+      tools: {
+        enable_file_tools: true,
+        enable_bash: true,
+        enable_note: true,
+        enable_skills: true,
+        skills_dir: "./skills",
+        enable_mcp: true,
+        mcp_config_path: "mcp.json",
+      },
+    });
   }
 }
