@@ -6,7 +6,7 @@ const [_node, _app, ...args] = process.argv;
 
 const cli = new Cli({
   binaryLabel: `ema`,
-  binaryName: `ema-cli`,
+  binaryName: `ema`,
   binaryVersion: `0.1.0`,
 });
 
