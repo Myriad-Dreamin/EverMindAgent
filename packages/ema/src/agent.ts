@@ -521,8 +521,6 @@ export class ContextManager {
 
 /** Single agent with basic tools and MCP support. */
 export class Agent {
-  /** Configuration for the agent and underlying LLM. */
-  config: Config;
   /** LLM client used by the agent to generate responses. */
   llm: LLMClientBase;
   /** Event emitter for agent lifecycle notifications. */
@@ -532,17 +530,12 @@ export class Agent {
   /** Logger instance used for agent-related logging. */
   logger: AgentLogger;
 
-  constructor({
-    config,
-    systemPrompt,
-    tools,
-  }: {
-    config?: Config;
-    systemPrompt?: string;
-    tools?: Tool[];
-  } = {}) {
-    this.config = config ?? Config.load();
-
+  constructor(
+    /** Configuration for the agent and underlying LLM. */
+    private config: Config,
+    systemPrompt: string,
+    tools: Tool[],
+  ) {
     this.llm = new OpenAIClient(
       this.config.llm.apiKey,
       this.config.llm.apiBase,
