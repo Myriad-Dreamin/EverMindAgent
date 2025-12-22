@@ -59,7 +59,7 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
    *   const input: ActorInput = {
    *     message: { type: "text", content: line },
    *   };
-   *   await this.work(input);
+   *   await this.work([input]);
    * }
    * ```
    */
@@ -104,6 +104,10 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     }
   }
 
+  /**
+   * Subscribes to the actor events.
+   * @param cb - The callback to receive the actor events.
+   */
   public subscribe(cb: (response: ActorResponse) => void) {
     cb({
       status: this.currentStatus,
@@ -112,10 +116,18 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     this.subscribers.add(cb);
   }
 
+  /**
+   * Unsubscribes from the actor events.
+   * @param cb - The callback to unsubscribe from.
+   */
   public unsubscribe(cb: (response: ActorResponse) => void) {
     this.subscribers.delete(cb);
   }
 
+  /**
+   * Broadcasts the actor events to the subscribers.
+   * @param status - The status of the actor.
+   */
   private broadcast(status: ActorStatus) {
     const response: ActorResponse = {
       status: (this.currentStatus = status),
@@ -126,11 +138,19 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     }
   }
 
+  /**
+   * Emits an event to the event stream.
+   * @param event - The event to emit.
+   */
   private emitEvent(event: ActorEvent) {
     this.eventStream.push(event);
     this.broadcast("running");
   }
 
+  /**
+   * Gets the state of the actor.
+   * @returns The state of the actor.
+   */
   async getState(): Promise<ActorState> {
     const actor = await this.actorDB.getActor(this.actorId);
     if (!actor) {
@@ -139,6 +159,10 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     return actor;
   }
 
+  /**
+   * Updates the state of the actor.
+   * @param state - The state to update.
+   */
   async updateState(state: ActorState): Promise<void> {
     // todo: only update necessary fields so that we don't have to get state
     // from database every time
@@ -155,6 +179,11 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     await this.actorDB.upsertActor(actor);
   }
 
+  /**
+   * Searches the long-term memory for items matching the keywords.
+   * @param keywords - The keywords to search for.
+   * @returns The search results.
+   */
   async search(keywords: string[]): Promise<SearchActorMemoryResult> {
     // todo: combine short-term memory search
     const items = await this.longTermMemorySearcher.searchLongTermMemories({
@@ -165,6 +194,10 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     return { items };
   }
 
+  /**
+   * Adds a short-term memory item to the actor.
+   * @param item - The short-term memory item to add.
+   */
   async addShortTermMemory(item: ShortTermMemory): Promise<void> {
     // todo: enforce short-term memory limit
     await this.shortTermMemoryDB.appendShortTermMemory({
@@ -173,6 +206,10 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     });
   }
 
+  /**
+   * Adds a long-term memory item to the actor.
+   * @param item - The long-term memory item to add.
+   */
   async addLongTermMemory(item: LongTermMemory): Promise<void> {
     // todo: enforce long-term memory limit
     await this.longTermMemoryDB.appendLongTermMemory({
@@ -182,10 +219,17 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
   }
 }
 
+/**
+ * The input to the actor, including text, image, audio, video, etc.
+ */
 export type ActorInput = ActorTextInput;
 
+/**
+ * The text input to the actor.
+ */
 export interface ActorTextInput {
   kind: "text";
+  /** The content of the text input. */
   content: string;
 }
 
@@ -193,24 +237,38 @@ export interface ActorTextInput {
  * The response from the actor.
  */
 export interface ActorResponse {
+  /** A short status text of the actor. */
   status: ActorStatus;
+  /** The events from the actor. */
   events: ActorEvent[];
 }
 
+/**
+ * The status of the actor.
+ */
 export type ActorStatus = "running" | "idle";
 
 /**
- * The actor sends a message.
+ * A event from the actor.
  */
 export type ActorEvent = ActorMessage | AgentEvent;
 
-interface ActorMessage {
+/**
+ * A message from the actor.
+ */
+export interface ActorMessage {
   type: "message";
+  /** The content of the message. */
   content: string;
 }
 
-interface AgentEvent {
+/**
+ * A event from the agent.
+ */
+export interface AgentEvent {
+  /** The type of the event. */
   type: AgentEventName;
+  /** The content of the event. */
   content: AgentEventContent<AgentEventName>;
 }
 
