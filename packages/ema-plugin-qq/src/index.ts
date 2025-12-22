@@ -113,6 +113,8 @@ export const Plugin: EmaPluginProvider = class {
         content.push(`</Reply>`);
       }
       content.push(message.raw_message);
+      // current time
+      content.push(`当前时间：<Time>${new Date().toLocaleString()}</Time>`);
 
       actor.work({
         metadata: { taskId: id },
