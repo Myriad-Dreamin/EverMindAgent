@@ -533,7 +533,6 @@ export class Agent {
   constructor(
     /** Configuration for the agent and underlying LLM. */
     private config: Config,
-    systemPrompt: string,
     tools: Tool[],
   ) {
     this.llm = new OpenAIClient(
@@ -545,7 +544,7 @@ export class Agent {
 
     // Initialize context manager with tools
     this.contextManager = new ContextManager(
-      systemPrompt ?? this.config.systemPrompt,
+      this.config.systemPrompt,
       this.llm,
       tools ?? this.config.baseTools,
       this.config.agent.workspaceDir,

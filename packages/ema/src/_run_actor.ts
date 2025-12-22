@@ -1,6 +1,7 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
+import { Config } from "./config";
 import type {
   ActorDB,
   ActorEntity,
@@ -87,6 +88,7 @@ class NoopLongTermMemorySearcher implements LongTermMemorySearcher {
 async function main(): Promise<void> {
   const actorId = 1;
   const actor = new ActorWorker(
+    Config.load(),
     actorId,
     new InMemoryActorDB(),
     new InMemoryShortTermMemoryDB(),

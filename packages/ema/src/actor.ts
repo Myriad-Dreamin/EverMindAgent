@@ -1,4 +1,5 @@
 // import type { Message } from "../schema";
+import type { Config } from "./config";
 import { Agent, AgentEvents } from "./agent";
 import type { AgentEventName, AgentEventContent } from "./agent";
 import type {
@@ -17,18 +18,21 @@ import type {
 } from "./skills/memory";
 
 export class ActorWorker implements ActorStateStorage, ActorMemory {
-  private readonly agent: Agent = new Agent();
+  private readonly agent: Agent;
   private readonly subscribers = new Set<(response: ActorResponse) => void>();
   private currentStatus: ActorStatus = "idle";
   private recentEvents: ActorEvents = [];
 
   constructor(
+    private readonly config: Config,
     private readonly actorId: number,
     private readonly actorDB: ActorDB,
     private readonly shortTermMemoryDB: ShortTermMemoryDB,
     private readonly longTermMemoryDB: LongTermMemoryDB,
     private readonly longTermMemorySearcher: LongTermMemorySearcher,
-  ) {}
+  ) {
+    this.agent = new Agent(config, config.baseTools);
+  }
 
   /**
    * A low-level function to step the actor.
