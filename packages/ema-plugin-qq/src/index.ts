@@ -1,5 +1,9 @@
 import type { AgentEventContent, EmaPluginProvider, Server } from "ema";
 import { NCWebsocket, type GroupMessage } from "node-napcat-ts";
+import { execSync } from "child_process";
+
+const gitRev = getGitRev();
+const gitRemote = getGitRemote();
 
 const napcat = new NCWebsocket(
   {
@@ -59,12 +63,18 @@ export const Plugin: EmaPluginProvider = class {
               continue;
             }
             const message = task.message;
+            const msg = runFinishedEvent.msg
+              .trim()
+              .replaceAll(
+                gitRev,
+                `[${gitRev}]( ${gitRemote}/commit/${gitRev} )`,
+              );
             message.quick_action(
               [
                 {
                   type: "text",
                   data: {
-                    text: ` ${runFinishedEvent.msg.trim()}`,
+                    text: ` ${msg}`,
                   },
                 },
               ],
@@ -106,22 +116,34 @@ export const Plugin: EmaPluginProvider = class {
       const id = taskId++;
       tasks[id] = { message };
 
-      let content = [];
+      let contentList = [];
       if (replyContext) {
-        content.push(`注意：这则消息是在回复：<Reply>`);
-        content.push(replyContext);
-        content.push(`</Reply>`);
+        contentList.push(`注意：这则消息是在回复：<Reply>`);
+        contentList.push(replyContext);
+        contentList.push(`</Reply>`);
       }
-      content.push(message.raw_message);
+      contentList.push(message.raw_message);
       // current time
-      content.push(`当前时间：<Time>${new Date().toLocaleString()}</Time>`);
+      contentList.push(`当前时间：<Time>${new Date().toLocaleString()}</Time>`);
+      contentList.push(`GitRev（分支）：<Rev>${gitRev}</Rev>`);
+
+      const content = contentList.join("\n");
 
       actor.work({
         metadata: { taskId: id },
-        inputs: [{ kind: "text", content: content.join("\n") }],
+        inputs: [{ kind: "text", content }],
       });
     });
 
     return Promise.resolve();
   }
 };
+
+function getGitRev(): string {
+  // git commit hash
+  return execSync("git rev-parse HEAD").toString().trim();
+}
+
+function getGitRemote(): string {
+  return execSync("git remote get-url origin").toString().trim();
+}
