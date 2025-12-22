@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./page.module.css";
 import type { Message } from "ema";
 
@@ -14,6 +14,26 @@ export default function ChatPage() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // TODO: refactor chat page to use new API.
+  // use /api/actor/input to send message.
+  // use /api/actor/sse to subscribe events.
+  useEffect(() => {
+    fetch("/api/actor/input", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: 1,
+        actorId: 1,
+        inputs: [{ kind: "text", content: "你好。" }],
+      }),
+    });
+    // push message
+
+    const eventSource = new EventSource("/api/actor/sse?userId=1&actorId=1");
+    eventSource.onmessage = (event) => {
+      console.log(event.data);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

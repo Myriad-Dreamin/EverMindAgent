@@ -24,9 +24,12 @@ import type {
   ConversationMessageDB,
   ShortTermMemoryDB,
   LongTermMemoryDB,
+  LongTermMemorySearcher,
 } from "./db/base";
 import type { Fs } from "./fs";
 import { RealFs } from "./fs";
+import { ActorWorker } from "./actor";
+import { Config } from "./config";
 
 /**
  * The server class for the EverMemoryArchive.
@@ -34,6 +37,9 @@ import { RealFs } from "./fs";
  * todo: read all of the env in config.ts
  */
 export class Server {
+  actors: Map<number, ActorWorker> = new Map();
+
+  config: Config;
   private llmClient: OpenAIClient;
   mongo!: Mongo;
   roleDB!: RoleDB & MongoCollectionGetter;
@@ -44,8 +50,10 @@ export class Server {
   conversationMessageDB!: ConversationMessageDB & MongoCollectionGetter;
   shortTermMemoryDB!: ShortTermMemoryDB & MongoCollectionGetter;
   longTermMemoryDB!: LongTermMemoryDB & MongoCollectionGetter;
+  longTermMemorySearcher!: LongTermMemorySearcher;
 
   private constructor(private readonly fs: Fs) {
+    this.config = Config.load();
     // Initialize OpenAI client with environment variables or defaults
     const apiKey =
       process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || "";
@@ -186,6 +194,30 @@ export class Server {
       name: "alice",
       email: "alice@example.com",
     };
+  }
+
+  /**
+   * Gets an actor by user ID and actor ID.
+   * @param userId - The user ID
+   * @param actorId - The actor ID
+   * @returns Promise<Actor> The actor
+   */
+  async getActor(_userId: number, actorId: number): Promise<ActorWorker> {
+    // todo: use userId to authorize request.
+
+    let actor = this.actors.get(actorId);
+    if (!actor) {
+      actor = new ActorWorker(
+        this.config,
+        actorId,
+        this.actorDB,
+        this.shortTermMemoryDB,
+        this.longTermMemoryDB,
+        this.longTermMemorySearcher,
+      );
+      this.actors.set(actorId, actor);
+    }
+    return actor;
   }
 
   /**
