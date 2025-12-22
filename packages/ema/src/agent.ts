@@ -5,9 +5,8 @@ import { EventEmitter } from "node:events";
 import { Tiktoken } from "js-tiktoken";
 import cl100k_base from "js-tiktoken/ranks/cl100k_base";
 
-import type { LLMClientBase } from "./llm/base";
-import { OpenAIClient } from "./llm/openai_client";
-import { Config } from "./config";
+import type { LLMClient } from "./llm/base";
+import { AgentConfig } from "./config";
 import { AgentLogger } from "./logger";
 import { RetryExhaustedError } from "./retry";
 import type { LLMResponse, Message } from "./schema";
@@ -159,7 +158,7 @@ export interface Context {
 
 /** Manages conversation context and message history for the agent. */
 export class ContextManager {
-  llmClient: LLMClientBase;
+  llmClient: LLMClient;
   workspaceDir: string;
   systemPrompt: string;
   tokenLimit: number;
@@ -172,7 +171,7 @@ export class ContextManager {
 
   constructor(
     systemPrompt: string,
-    llmClient: LLMClientBase,
+    llmClient: LLMClient,
     tools: Tool[],
     workspaceDir: string,
     tokenLimit: number = 80000,
@@ -521,8 +520,6 @@ export class ContextManager {
 
 /** Single agent with basic tools and MCP support. */
 export class Agent {
-  /** LLM client used by the agent to generate responses. */
-  llm: LLMClientBase;
   /** Event emitter for agent lifecycle notifications. */
   events: AgentEventsEmitter = new AgentEventsEmitter();
   /** Manages conversation context, history, and available tools. */
@@ -531,24 +528,20 @@ export class Agent {
   logger: AgentLogger;
 
   constructor(
-    /** Configuration for the agent and underlying LLM. */
-    private config: Config,
+    /** Configuration for the agent. */
+    private config: AgentConfig,
+    /** LLM client used by the agent to generate responses. */
+    private llm: LLMClient,
+    systemPrompt: string,
     tools: Tool[],
   ) {
-    this.llm = new OpenAIClient(
-      this.config.llm.apiKey,
-      this.config.llm.apiBase,
-      this.config.llm.model,
-      this.config.llm.retry,
-    );
-
     // Initialize context manager with tools
     this.contextManager = new ContextManager(
-      this.config.systemPrompt,
-      this.llm,
-      tools ?? this.config.baseTools,
-      this.config.agent.workspaceDir,
-      this.config.agent.tokenLimit,
+      systemPrompt,
+      llm,
+      tools,
+      this.config.workspaceDir,
+      this.config.tokenLimit,
       this.events,
     );
 
@@ -564,7 +557,7 @@ export class Agent {
     //   `${Colors.DIM}📝 Log file: ${this.logger.getLogFilePath()}${Colors.RESET}`,
     // );
 
-    const maxSteps = this.config.agent.maxSteps;
+    const maxSteps = this.config.maxSteps;
     let step = 0;
 
     while (step < maxSteps) {

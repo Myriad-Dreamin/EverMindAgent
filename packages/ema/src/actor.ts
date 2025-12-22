@@ -16,6 +16,7 @@ import type {
   ActorStateStorage,
   ActorMemory,
 } from "./skills/memory";
+import { OpenAIClient } from "./llm/openai_client";
 
 export class ActorWorker implements ActorStateStorage, ActorMemory {
   private readonly agent: Agent;
@@ -31,7 +32,13 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
     private readonly longTermMemoryDB: LongTermMemoryDB,
     private readonly longTermMemorySearcher: LongTermMemorySearcher,
   ) {
-    this.agent = new Agent(config, config.baseTools);
+    const llm = new OpenAIClient(
+      this.config.llm.apiKey,
+      this.config.llm.apiBase,
+      this.config.llm.model,
+      this.config.llm.retry,
+    );
+    this.agent = new Agent(config, llm, config.systemPrompt, config.baseTools);
   }
 
   /**
