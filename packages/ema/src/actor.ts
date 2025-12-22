@@ -22,7 +22,7 @@ export class ActorWorker implements ActorStateStorage, ActorMemory {
   private readonly agent: Agent;
   private readonly subscribers = new Set<(response: ActorResponse) => void>();
   private currentStatus: ActorStatus = "idle";
-  private eventStream = new EventStream();
+  private eventStream = new EventHistory();
 
   constructor(
     private readonly config: Config,
@@ -227,20 +227,20 @@ interface AgentEvent {
 }
 
 /**
- * A stream of actor events.
+ * A history of newly produced actor events since agent started.
  */
-class EventStream {
+class EventHistory {
   /** The index of the current event. */
   eventIdx = 0;
   /** The list of events. */
   events: ActorEvent[] = [];
 
-  /** Push an event to the stream. */
+  /** Push an event to the history. */
   push(event: ActorEvent) {
     this.events.push(event);
   }
 
-  /** Advance the stream to the next event. */
+  /** Advance the history to the next event. */
   advance() {
     const events = this.events.slice(this.eventIdx);
     this.eventIdx += events.length;
