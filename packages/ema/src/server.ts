@@ -108,7 +108,7 @@ export class Server {
    * @returns Promise resolving to the Server instance
    */
   static createWithMongo(fs: Fs, mongo: Mongo): Server {
-    const server = new Server(fs);
+    const server = new Server(fs, Config.load());
     server.mongo = mongo;
     server.roleDB = new MongoRoleDB(mongo);
     server.actorDB = new MongoActorDB(mongo);
