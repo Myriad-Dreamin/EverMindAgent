@@ -235,19 +235,19 @@ class EventHistory {
   /** The list of events. */
   events: ActorEvent[] = [];
 
-  /** Push an event to the history. */
+  /** Pushes an event to the history. */
   push(event: ActorEvent) {
     this.events.push(event);
   }
 
-  /** Advance the history to the next event. */
+  /** Advances the history to the next event. */
   advance() {
     const events = this.events.slice(this.eventIdx);
     this.eventIdx += events.length;
     return events;
   }
 
-  /** Get the past events. */
+  /** Gets the past events. */
   pastEvents() {
     return this.events.slice(0, this.eventIdx);
   }
