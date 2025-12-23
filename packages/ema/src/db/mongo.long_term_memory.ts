@@ -3,8 +3,10 @@ import type {
   LongTermMemoryEntity,
   ListLongTermMemoriesRequest,
   LongTermMemorySearcher,
-  CreatedField,
+  LongTermMemoryIndexer,
   SearchLongTermMemoriesRequest,
+  CreatedField,
+  DbDate,
 } from "./base";
 import type { Mongo } from "./mongo";
 import { upsertEntity, deleteEntity, omitMongoId } from "./mongo.util";
@@ -14,7 +16,6 @@ import { upsertEntity, deleteEntity, omitMongoId } from "./mongo.util";
  * Stores long term memory data in a MongoDB collection
  */
 export class MongoLongTermMemoryDB implements LongTermMemoryDB {
-  private readonly mongo: Mongo;
   /** collection name */
   private readonly $cn = "long_term_memories";
   /**
@@ -26,9 +27,10 @@ export class MongoLongTermMemoryDB implements LongTermMemoryDB {
    * Creates a new MongoLongTermMemoryDB instance
    * @param mongo - MongoDB instance to use for database operations
    */
-  constructor(mongo: Mongo) {
-    this.mongo = mongo;
-  }
+  constructor(
+    private readonly mongo: Mongo,
+    private readonly indexers: LongTermMemoryIndexer[] = [],
+  ) {}
 
   /**
    * Lists long term memories in the database
@@ -71,7 +73,15 @@ export class MongoLongTermMemoryDB implements LongTermMemoryDB {
     if (entity.id) {
       throw new Error("id must not be provided");
     }
-    return upsertEntity(this.mongo, this.$cn, entity);
+    return this.mongo.getClient().withSession(async () => {
+      const id = await upsertEntity(this.mongo, this.$cn, entity);
+      const newEntity = { ...entity, id };
+      for (const indexer of this.indexers) {
+        // todo: if there are multiple indexers, we need to rollback all of them if any of them fail.
+        await indexer.indexLongTermMemory(newEntity);
+      }
+      return id;
+    });
   }
 
   /**
@@ -84,7 +94,16 @@ export class MongoLongTermMemoryDB implements LongTermMemoryDB {
   }
 }
 
-export class MongoLongTermMemorySearcher implements LongTermMemorySearcher {
+/**
+ * Abstract base class for MongoDB-backed long term memory search.
+ *
+ * This adaptor implements {@link LongTermMemorySearcher} by:
+ * - delegating to {@link MongoMemorySearchAdaptor.doSearch | doSearch} to perform
+ *   vector similarity search and return matching long term memory IDs, and
+ * - resolving those IDs into full {@link LongTermMemoryEntity} documents from
+ *   the underlying MongoDB collection.
+ */
+export abstract class MongoMemorySearchAdaptor implements LongTermMemorySearcher {
   private readonly mongo: Mongo;
   /** collection name */
   private readonly $cn = "long_term_memories";
@@ -97,33 +116,44 @@ export class MongoLongTermMemorySearcher implements LongTermMemorySearcher {
     this.mongo = mongo;
   }
 
-  // todo: fuzzy search
+  /**
+   * Indexes a long term memory
+   * @param entity - The long term memory to index
+   * @returns Promise resolving to void
+   */
+  abstract indexLongTermMemory(entity: LongTermMemoryEntity): Promise<void>;
+
+  /**
+   * Creates the indices for the long term memory vector embedding collection
+   */
+  abstract createIndices(): Promise<void>;
+
+  /**
+   * Searches for long term memories
+   *
+   * @param req - The request to search for long term memories
+   * @returns Promise resolving to an array of long term memory IDs
+   */
+  abstract doSearch(req: SearchLongTermMemoriesRequest): Promise<number[]>;
+
   async searchLongTermMemories(
     req: SearchLongTermMemoriesRequest,
   ): Promise<(LongTermMemoryEntity & CreatedField)[]> {
+    const idResults = await this.doSearch(req);
+
+    // Convert ids to long term memory entities
     const db = this.mongo.getDb();
     const collection = db.collection<LongTermMemoryEntity>(this.$cn);
-
-    const filter: any = {};
-    if (req.actorId) {
-      filter.actorId = req.actorId;
-    }
-    if (req.index0) {
-      filter.index0 = req.index0;
-    }
-    if (req.index1) {
-      filter.index1 = req.index1;
-    }
-    if (req.keywords) {
-      filter.keywords = req.keywords;
-    }
-    return (await collection.find(filter).toArray()).map(withCreatedField);
+    const results = await collection.find({ id: { $in: idResults } }).toArray();
+    return results.map(omitMongoId).map(checkCreatedField);
   }
 }
 
-function withCreatedField<T extends object>(entity: T): T & CreatedField {
-  if ("createdAt" in entity && entity.createdAt !== undefined) {
-    return entity as T & CreatedField;
+function checkCreatedField<T extends { createdAt?: DbDate }>(
+  entity: T,
+): T & CreatedField {
+  if (!entity.createdAt) {
+    throw new Error("createdAt is required");
   }
-  throw new Error("createdAt is required");
+  return entity as T & CreatedField;
 }

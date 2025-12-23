@@ -7,6 +7,7 @@
 *_credentials.json
 secrets/
 config/private/
+config.yaml
 
 # --- Agent Memory & Database ---
 chroma_db/

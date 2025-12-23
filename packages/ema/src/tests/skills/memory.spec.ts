@@ -4,13 +4,18 @@ import {
   MongoActorDB,
   MongoShortTermMemoryDB,
   MongoLongTermMemoryDB,
-  MongoLongTermMemorySearcher,
+  LanceMemoryVectorSearcher,
 } from "../../db";
 import type { Mongo } from "../../db";
 import { ActorWorker } from "../../actor";
 import { Config } from "../../config";
+import * as lancedb from "@lancedb/lancedb";
 
-describe("MemorySkill", () => {
+const describeLLM = describe.runIf(
+  !!process.env.GEMINI_API_KEY?.trim() &&
+    process.env.GEMINI_API_KEY !== "DUMMY_KEY",
+);
+describeLLM("MemorySkill", () => {
   const { shouldSkip, skipReason } = (() => {
     try {
       Config.load();
@@ -30,24 +35,30 @@ describe("MemorySkill", () => {
 
   let mongo: Mongo;
   let worker: ActorWorker;
+  let lance: lancedb.Connection;
 
   beforeEach(async () => {
     // Create in-memory MongoDB instance for testing
     mongo = await createMongo("", "test", "memory");
+    lance = await lancedb.connect("memory://ema");
     await mongo.connect();
+
+    const searcher = new LanceMemoryVectorSearcher(mongo, lance);
     worker = new ActorWorker(
       Config.load(),
       1,
       new MongoActorDB(mongo),
       new MongoShortTermMemoryDB(mongo),
       new MongoLongTermMemoryDB(mongo),
-      new MongoLongTermMemorySearcher(mongo),
+      searcher,
     );
+
+    await searcher.createIndices();
   });
 
   afterEach(async () => {
-    // Clean up: close MongoDB connection
     await mongo.close();
+    await lance.close();
   });
 
   test("should search memory", async () => {
