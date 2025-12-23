@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/mongodb-binaries
-          key: node-mongodb-22
+          key: node-mongodb-24
 
       - name: Install MongoDB
         run: npx tsx scripts/install-mongo.ts
