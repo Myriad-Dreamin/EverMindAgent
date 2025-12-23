@@ -5,6 +5,8 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import { Config } from "../config";
+// @ts-ignore
+import configTestData from "./config_test.yaml?raw";
 
 describe("Config", () => {
   test("should load values from a YAML file", () => {
@@ -15,22 +17,7 @@ describe("Config", () => {
       const configPath = path.join(tempDir, "config.yaml");
 
       // 2. Write some config items into the config file.
-      fs.writeFileSync(
-        configPath,
-        [
-          'api_key: "test-api-key"',
-          'api_base: "https://example.com/v1/"',
-          'model: "test-model"',
-          'provider: "openai"',
-          "retry:",
-          "  enabled: false",
-          "  max_retries: 5",
-          "tools:",
-          "  enable_bash: false",
-          "",
-        ].join("\n"),
-        "utf-8",
-      );
+      fs.writeFileSync(configPath, configTestData, "utf-8");
 
       // 3. Load config and verify values match the file content.
       const config = Config.fromYaml(configPath);
