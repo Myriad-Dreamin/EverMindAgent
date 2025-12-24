@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import type { Message } from "ema";
 
@@ -14,26 +14,58 @@ export default function ChatPage() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const currentAssistantMessageRef = useRef<string>("");
 
-  // TODO: refactor chat page to use new API.
-  // use /api/actor/input to send message.
-  // use /api/actor/sse to subscribe events.
+  // Set up SSE connection to subscribe to actor events
   useEffect(() => {
-    fetch("/api/actor/input", {
-      method: "POST",
-      body: JSON.stringify({
-        userId: 1,
-        actorId: 1,
-        inputs: [{ kind: "text", content: "你好。" }],
-      }),
-    });
-    // push message
-
     const eventSource = new EventSource("/api/actor/sse?userId=1&actorId=1");
+    eventSourceRef.current = eventSource;
+
     eventSource.onmessage = (event) => {
-      console.log(event.data);
+      try {
+        const response = JSON.parse(event.data);
+        
+        // Process events from the actor
+        if (response.events && Array.isArray(response.events)) {
+          response.events.forEach((evt: { type: string; content?: { response?: { content?: string } } }) => {
+            // Handle LLM response which contains the assistant's message
+            if (evt.type === "llmResponseReceived" && evt.content?.response?.content) {
+              currentAssistantMessageRef.current = evt.content.response.content;
+            }
+          });
+        }
+
+        // Update loading state based on actor status
+        if (response.status === "idle" && isLoading) {
+          // Actor finished processing, add the accumulated message
+          if (currentAssistantMessageRef.current) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: currentAssistantMessageRef.current,
+              },
+            ]);
+            currentAssistantMessageRef.current = "";
+          }
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error parsing SSE event:", error);
+      }
     };
-  }, []);
+
+    eventSource.onerror = (error) => {
+      console.error("SSE connection error:", error);
+      eventSource.close();
+    };
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+    };
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,41 +83,34 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // Call the chat API
-      const response = await fetch("/api/roles/chat", {
+      // Send input to actor using the new API
+      const response = await fetch("/api/actor/input", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: updatedMessages,
+          userId: 1,
+          actorId: 1,
+          inputs: [{ kind: "text", content: userMessage.content }],
         }),
       });
 
       if (!response.ok) {
         throw new Error(
-          `Failed to get response: ${response.status} ${response.statusText}`,
+          `Failed to send message: ${response.status} ${response.statusText}`,
         );
       }
 
-      const data = await response.json();
-
-      // Add assistant response to conversation
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.content,
-      };
-
-      setMessages([...updatedMessages, assistantMessage]);
+      // Response will come through SSE, so we don't need to process it here
     } catch (error) {
       console.error("Error:", error);
-      // Optionally add error message to chat
+      // Add error message to chat
       const errorMessage: Message = {
         role: "assistant",
         content: "Sorry, I encountered an error. Please try again.",
       };
       setMessages([...updatedMessages, errorMessage]);
-    } finally {
       setIsLoading(false);
     }
   };
