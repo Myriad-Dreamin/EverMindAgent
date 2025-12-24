@@ -1,5 +1,5 @@
 /**
- * Chat API endpoint.
+ * SSE endpoint for subscribing to actor events at /api/actor/sse.
  * See https://nextjs.org/blog/building-apis-with-nextjs#32-multiple-http-methods-in-one-file
  */
 
