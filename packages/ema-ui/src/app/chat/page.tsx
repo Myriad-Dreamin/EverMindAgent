@@ -24,13 +24,11 @@ export default function ChatPage() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const currentAssistantMessageRef = useRef<string>("");
 
   // Set up SSE connection to subscribe to actor events
   useEffect(() => {
     const eventSource = new EventSource("/api/actor/sse?userId=1&actorId=1");
-    eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
       try {
@@ -71,7 +69,7 @@ export default function ChatPage() {
       eventSource.close();
     };
 
-    // Cleanup on unmount
+    // Cleanup on unmount (EventSource.close() is safe to call multiple times)
     return () => {
       eventSource.close();
     };
@@ -113,6 +111,7 @@ export default function ChatPage() {
       }
 
       // Response will come through SSE, so we don't need to process it here
+      // Note: isLoading remains true until SSE event with status 'idle' arrives
     } catch (error) {
       console.error("Error:", error);
       // Add error message to chat
