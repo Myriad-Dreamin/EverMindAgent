@@ -29,12 +29,12 @@ export const GET = getQuery(ActorSseRequest)(async (query) => {
   );
   const encoder = new TextEncoder();
   /* The handle to unsubscribe from the actor events. */
-  let subscribe: (response: ActorResponse) => void;
+  let eventCallback: (response: ActorResponse) => void;
 
   const customReadable = new ReadableStream({
     start(controller) {
       actor.subscribe(
-        (subscribe = (response) => {
+        (eventCallback = (response) => {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(response)}\n\n`),
           );
@@ -42,8 +42,8 @@ export const GET = getQuery(ActorSseRequest)(async (query) => {
       );
     },
     cancel() {
-      if (subscribe) {
-        actor.unsubscribe(subscribe);
+      if (eventCallback) {
+        actor.unsubscribe(eventCallback);
       }
     },
   });

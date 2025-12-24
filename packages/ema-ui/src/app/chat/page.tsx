@@ -48,6 +48,7 @@ export default function ChatPage() {
     };
 
     eventSource.onerror = (error) => {
+      // todo: reconnect
       console.error("SSE connection error:", error);
       eventSource.close();
     };
